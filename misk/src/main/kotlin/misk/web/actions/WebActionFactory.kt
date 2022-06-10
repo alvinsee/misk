@@ -21,6 +21,7 @@ import misk.web.Post
 import misk.web.Put
 import misk.web.RequestBody
 import misk.web.WebActionBinding
+import misk.web.interceptors.EarlyBind
 import misk.web.mediatype.MediaRange
 import misk.web.mediatype.MediaTypes
 import javax.inject.Inject
@@ -33,6 +34,7 @@ import kotlin.reflect.full.functions
 @Singleton
 internal class WebActionFactory @Inject constructor(
   private val injector: Injector,
+  @EarlyBind private val userProvidedEarlyNetworkInterceptorFactories: List<NetworkInterceptor.Factory>,
   private val userProvidedApplicationInterceptorFactories: List<ApplicationInterceptor.Factory>,
   private val userProvidedNetworkInterceptorFactories: List<NetworkInterceptor.Factory>,
   @MiskDefault private val miskNetworkInterceptorFactories: List<NetworkInterceptor.Factory>,
@@ -192,7 +194,8 @@ internal class WebActionFactory @Inject constructor(
   ): BoundAction<A> {
     // Ensure that default interceptors are called before any user provided interceptors
     val networkInterceptors =
-      miskNetworkInterceptorFactories.mapNotNull { it.create(action) } +
+      userProvidedEarlyNetworkInterceptorFactories.mapNotNull { it.create(action) } +
+        miskNetworkInterceptorFactories.mapNotNull { it.create(action) } +
         userProvidedNetworkInterceptorFactories.mapNotNull { it.create(action) }
 
     val applicationInterceptors =
